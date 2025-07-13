@@ -1,0 +1,12 @@
+void transform_model(fixed matrix[restrict], const model_t *model);
+void transform_model_vis(fixed matrix[], int dl_vt_offset, int dl_mode, const model_t *model);
+void transform_vertices(fixed matrix[restrict], const vec3_s16_t *vt_in, vec3_t *vt_out, int num_elements);
+void transform_vertices_pos(fixed matrix[], const vec3_t *vt_in, vec3_t *vt_out, int num_elements);
+void transform_matrix(fixed matrix_0[], fixed matrix_1[]);
+void transform_vertex(vec3_t p0, vec3_t *p1, fixed matrix[]);
+void transform_vertex_pos(vec3_t p0, vec3_t *p1, fixed matrix[]);
+void transform_vertex_z(vec3_t p, fixed *z, fixed matrix[]);
+void transform_vertex_axis(fixed *ax, int axis, fixed matrix[]);
+void transform_frustum(frustum_t *frustum, tr_frustum_t *tr_frustum, fixed matrix[restrict], u8 transform_normals);
+void project_poly_vertices(g_poly_t *poly);
+void project_vertex(vec3_t *vt);

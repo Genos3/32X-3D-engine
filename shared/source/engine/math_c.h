@@ -1,0 +1,15 @@
+void calc_normal(vec3_t *v0, vec3_t *v1, vec3_t *v2, vec3_t *nm);
+fixed calc_normal_z(vec3_t *v0, vec3_t *v1, vec3_t *v2);
+fixed calc_dp(vec3_t *v0, vec3_t *v1, vec3_t *v2);
+void calc_2d_normal(vec2_t *v0, vec2_t *v1, vec2_t *nm);
+fixed dot(vec3_t *v0, vec3_t *v1);
+void cross(vec3_t *v0, vec3_t *v1, vec3_t *nm);
+fixed cross_2d(vec3_t *v0, vec3_t *v1);
+u32 sqrt_i(u32 x);
+void normalize(vec3_t *v, vec3_t *u);
+void normalize_2d(vec2_t *v, vec2_t *u);
+void normalize_fast(vec3_t *v, vec3_t *u);
+void normalize_2d_fast(vec2_t *v, vec2_t *u);
+void pow8(fixed *n);
+u16 atan2_c(fixed y, fixed x);
+fixed calc_vec_length(vec3_t p);

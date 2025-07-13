@@ -1,0 +1,1 @@
+void draw_grid(vec3_t obj_pos, const model_t *model);

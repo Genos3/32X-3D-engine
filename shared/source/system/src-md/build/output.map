@@ -1,0 +1,204 @@
+Archive member included to satisfy reference by file (symbol)
+
+/mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+                              build/main.o (memcmp)
+/mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+                              build/main.o (memcpy)
+/mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+                              build/main.o (memset)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+rom              0x0000000000880800 0x000000000007f800 xr
+ram              0x0000000000ff0000 0x0000000000010000 xw
+*default*        0x0000000000000000 0xffffffffffffffff
+
+Linker script and memory map
+
+LOAD build/crt0.o
+LOAD build/main.o
+LOAD build/kos.o
+LOAD build/cd.o
+LOAD /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a
+LOAD /mnt/c/games/opt/toolchains/sega/m68k-elf/lib/gcc/m68k-elf/12.1.0/libgcc.a
+LOAD /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libnosys.a
+                0x0000000000000000                __DYNAMIC = 0x0
+                0x0000000001000000                PROVIDE (__stack = 0x1000000)
+
+.text           0x0000000000880800      0x8e0 load address 0x0000000000000000
+                0x0000000000880800                __text_start = .
+ *(.text)
+ .text          0x0000000000880800      0x21e build/crt0.o
+                0x0000000000880800                _start
+                0x00000000008809e2                write_byte
+                0x00000000008809ee                write_word
+                0x00000000008809fa                write_long
+                0x0000000000880a06                read_byte
+                0x0000000000880a0e                read_word
+                0x0000000000880a16                read_long
+ *fill*         0x0000000000880a1e        0x2 
+ .text          0x0000000000880a20      0x298 build/main.o
+                0x0000000000880a20                InitCD
+ .text          0x0000000000880cb8       0xb0 build/kos.o
+                0x0000000000880cb8                Kos_Decomp
+ .text          0x0000000000880d68      0x1b4 build/cd.o
+                0x0000000000880d68                Sub_Start
+                0x0000000000880f1c                Sub_End
+ .text          0x0000000000880f1c       0x78 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+                0x0000000000880f1c                memcmp
+ .text          0x0000000000880f94       0x6e /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+                0x0000000000880f94                memcpy
+ *fill*         0x0000000000881002        0x2 
+ .text          0x0000000000881004       0x72 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+                0x0000000000881004                memset
+ *(.text.*)
+ .text.startup  0x0000000000881076       0x10 build/main.o
+                0x0000000000881076                main
+ *(.gnu.linkonce.t.*)
+                0x0000000000881090                . = ALIGN (0x10)
+ *fill*         0x0000000000881086        0xa 
+                0x0000000000881090                __INIT_SECTION__ = .
+ *(.init)
+                0x0000000000881090        0x2 SHORT 0x4e75
+                0x00000000008810a0                . = ALIGN (0x10)
+ *fill*         0x0000000000881092        0xe 
+                0x00000000008810a0                __FINI_SECTION__ = .
+ *(.fini)
+                0x00000000008810a0        0x2 SHORT 0x4e75
+ *(.eh_frame_hdr)
+ *(.eh_frame)
+ *(.gcc_except_table)
+ *(.gcc_except_table.*)
+ *(.jcr)
+                0x00000000008810b0                . = ALIGN (0x10)
+ *fill*         0x00000000008810a2        0xe 
+                0x00000000008810b0                __CTOR_LIST__ = .
+                0x00000000008810b0                ___CTOR_LIST__ = .
+                0x00000000008810b0        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
+ *(SORT_BY_NAME(.ctors.*))
+ *(.ctors)
+                0x00000000008810b4        0x4 LONG 0x0
+                0x00000000008810b8                __CTOR_END__ = .
+                0x00000000008810c0                . = ALIGN (0x10)
+ *fill*         0x00000000008810b8        0x8 
+                0x00000000008810c0                __DTOR_LIST__ = .
+                0x00000000008810c0                ___DTOR_LIST__ = .
+                0x00000000008810c0        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
+ *(SORT_BY_NAME(.dtors.*))
+ *(.dtors)
+                0x00000000008810c4        0x4 LONG 0x0
+                0x00000000008810c8                __DTOR_END__ = .
+ *(.rdata)
+ *(.rodata)
+ *(.rodata.*)
+ .rodata.str1.1
+                0x00000000008810c8        0xc build/main.o
+ *(.gnu.linkonce.r.*)
+                0x00000000008810e0                . = ALIGN (0x10)
+ *fill*         0x00000000008810d4        0xc 
+                0x00000000008810e0                __text_end = .
+                0x00000000000008e0                __text_size = (__text_end - __text_start)
+
+.data           0x0000000000ff0000      0x478 load address 0x00000000000008e0
+                0x0000000000ff0000                __data_start = .
+ *(.data)
+ .data          0x0000000000ff0000      0x474 build/crt0.o
+                0x0000000000ff0000                do_main
+                0x0000000000ff0470                gen_lvl2
+                0x0000000000ff0472                cd_ok
+ .data          0x0000000000ff0474        0x0 build/main.o
+ .data          0x0000000000ff0474        0x0 build/kos.o
+ .data          0x0000000000ff0474        0x0 build/cd.o
+ .data          0x0000000000ff0474        0x0 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+ .data          0x0000000000ff0474        0x0 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+ .data          0x0000000000ff0474        0x0 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+ *(.data.*)
+ *(.gnu.linkonce.d.*)
+ *(.lit8)
+ *(.lit4)
+ *(.sdata)
+ *(.sdata.*)
+ *(.gnu.linkonce.s.*)
+                0x0000000000ff0478                . = ALIGN (0x8)
+ *fill*         0x0000000000ff0474        0x4 
+                0x0000000000ff0478                __data_end = .
+                0x0000000000000478                __data_size = (__data_end - __data_start)
+
+.bss            0x0000000000ff0478        0x8 load address 0x0000000000000d58
+                0x0000000000ff0478                __bss_start = .
+ *(.bss)
+ .bss           0x0000000000ff0478        0x0 build/crt0.o
+ .bss           0x0000000000ff0478        0x4 build/main.o
+ .bss           0x0000000000ff047c        0x0 build/kos.o
+ .bss           0x0000000000ff047c        0x0 build/cd.o
+ .bss           0x0000000000ff047c        0x0 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+ .bss           0x0000000000ff047c        0x0 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+ .bss           0x0000000000ff047c        0x0 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+ *(.bss.*)
+ *(.gnu.linkonce.b.*)
+ *(.sbss)
+ *(.sbss.*)
+ *(.gnu.linkonce.sb.*)
+ *(.scommon)
+ *(COMMON)
+                0x0000000000ff0480                . = ALIGN (0x8)
+ *fill*         0x0000000000ff047c        0x4 
+                0x0000000000ff0480                end = .
+                0x0000000000ff0480                _end = end
+                0x0000000000ff0480                __end = _end
+                0x0000000000ff0480                __bss_end = .
+                0x0000000000000008                __bss_size = (__bss_end - __bss_start)
+OUTPUT(m68k.elf elf32-m68k)
+
+.comment        0x0000000000000000       0x12
+ .comment       0x0000000000000000       0x12 build/main.o
+                                         0x13 (size before relaxing)
+ .comment       0x0000000000000012       0x13 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+
+.debug_info     0x0000000000000000      0x16a
+ .debug_info    0x0000000000000000      0x122 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+ .debug_info    0x0000000000000122       0x24 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_info    0x0000000000000146       0x24 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+
+.debug_abbrev   0x0000000000000000       0xc9
+ .debug_abbrev  0x0000000000000000       0xa1 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+ .debug_abbrev  0x00000000000000a1       0x14 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_abbrev  0x00000000000000b5       0x14 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+
+.debug_loclists
+                0x0000000000000000       0xd0
+ .debug_loclists
+                0x0000000000000000       0xd0 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+
+.debug_aranges  0x0000000000000000       0x60
+ .debug_aranges
+                0x0000000000000000       0x20 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+ .debug_aranges
+                0x0000000000000020       0x20 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_aranges
+                0x0000000000000040       0x20 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+
+.debug_line     0x0000000000000000      0x23e
+ .debug_line    0x0000000000000000      0x168 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+ .debug_line    0x0000000000000168       0x69 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_line    0x00000000000001d1       0x6d /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+
+.debug_str      0x0000000000000000      0x1eb
+ .debug_str     0x0000000000000000      0x114 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+                                        0x14d (size before relaxing)
+ .debug_str     0x0000000000000114       0x96 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+ .debug_str     0x00000000000001aa       0x41 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+                                         0x96 (size before relaxing)
+
+.debug_frame    0x0000000000000000       0x30
+ .debug_frame   0x0000000000000000       0x30 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcmp.o)
+
+.debug_line_str
+                0x0000000000000000       0x93
+ .debug_line_str
+                0x0000000000000000       0x8a /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memcpy.o)
+                                         0x93 (size before relaxing)
+ .debug_line_str
+                0x000000000000008a        0x9 /mnt/c/games/opt/toolchains/sega/m68k-elf/m68k-elf/lib/libc.a(lib_a-memset.o)
+                                         0x93 (size before relaxing)

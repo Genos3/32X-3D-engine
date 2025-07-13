@@ -1,0 +1,10 @@
+extern u8 tri_sub_faces_lut[];
+extern u8 quad_sub_faces_lut[];
+extern u8 tri_sub_num_pl[];
+extern u8 quad_sub_num_pl[];
+extern u8 tri_sub_group_idx[];
+extern u8 quad_sub_group_idx[];
+extern u8 tri_sub_num_vt[];
+extern u8 quad_sub_num_vt[];
+extern u8 tri_sub_face_index[];
+extern u8 quad_sub_face_index[];
