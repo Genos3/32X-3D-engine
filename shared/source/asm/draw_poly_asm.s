@@ -1,6 +1,6 @@
 #include "asm_common.inc"
 
-#define UNROLL_SCANLINE_LOOP 0
+#define UNROLL_SCANLINE_LOOP 1
 
 .section .sdram
 .global _draw_poly_asm
@@ -525,11 +525,11 @@ pool.div_lut:
 
 return:
   add #stack_size, sp
-  mov.l @sp+, r8
-  mov.l @sp+, r9
-  mov.l @sp+, r10
-  mov.l @sp+, r11
-  mov.l @sp+, r12
-  mov.l @sp+, r13
-  rts
   mov.l @sp+, r14
+  mov.l @sp+, r13
+  mov.l @sp+, r12
+  mov.l @sp+, r11
+  mov.l @sp+, r10
+  mov.l @sp+, r9
+  rts
+  mov.l @sp+, r8

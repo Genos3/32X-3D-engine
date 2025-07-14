@@ -1,6 +1,6 @@
 #include "asm_common.inc"
 
-#define UNROLL_SCANLINE_LOOP 0
+#define UNROLL_SCANLINE_LOOP 1
 
 .section .sdram
 .global _draw_poly_tx_affine_asm
@@ -54,6 +54,9 @@
     mov.w r6, @-r2  // *--vid_pnt = tx_color;
   #endif
   
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_not_transparent_8
+  #endif
   add r5, r4  // su_sv += dudx_dvdx;
 .endm
 
@@ -88,6 +91,9 @@
     mov.w r6, @-r2  // *--vid_pnt = tx_color;
   #endif
   
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_not_transparent_16
+  #endif
   add r5, r4  // su_sv += dudx_dvdx;
 .endm
 
@@ -123,6 +129,9 @@
     mov.w r6, @-r2  // *--vid_pnt = tx_color;
   #endif
   
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_not_transparent_32
+  #endif
   add r5, r4  // su_sv += dudx_dvdx;
 .endm
 
@@ -162,6 +171,9 @@
   
   add #-2, r2  // vid_pnt--;
   
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_has_transparency_8
+  #endif
   add r5, r4  // su_sv += dudx_dvdx;
 .endm
 
@@ -201,6 +213,9 @@
   
   add #-2, r2  // vid_pnt--;
   
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_has_transparency_16
+  #endif
   add r5, r4  // su_sv += dudx_dvdx;
 .endm
 
@@ -241,6 +256,9 @@
   
   add #-2, r2  // vid_pnt--;
   
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_has_transparency_32
+  #endif
   add r5, r4  // su_sv += dudx_dvdx;
 .endm
 
@@ -517,7 +535,7 @@ _draw_poly_tx_affine_asm:
           
           mov r4, r0
           shll r0  // u16
-          mov.l @(r0, r3), r2  // fixed rdy = div_lut[height_l]; // .16 result
+          mov.w @(r0, r3), r2  // fixed rdy = div_lut[height_l]; // .16 result
         #endif
         
         dmuls.l r6, r2
@@ -681,7 +699,7 @@ _draw_poly_tx_affine_asm:
           
           mov r5, r0
           shll r0  // u16
-          mov.l @(r0, r3), r2  // fixed rdy = div_lut[height_r]; // .16 result
+          mov.w @(r0, r3), r2  // fixed rdy = div_lut[height_r]; // .16 result
         #endif
         
         dmuls.l r6, r2
@@ -836,7 +854,7 @@ _draw_poly_tx_affine_asm:
         
         mov r1, r0
         shll r0  // u16
-        mov.l @(r0, r13), r1  // fixed rdx = div_lut[dx]; // .16 result
+        mov.w @(r0, r13), r1  // fixed rdx = div_lut[dx]; // .16 result
       #endif
       
       dmuls.l r5, r1
@@ -964,14 +982,14 @@ _draw_poly_tx_affine_asm:
 
 return:
   add #stack_size, sp
-  mov.l @sp+, r8
-  mov.l @sp+, r9
-  mov.l @sp+, r10
-  mov.l @sp+, r11
-  mov.l @sp+, r12
-  mov.l @sp+, r13
-  rts
   mov.l @sp+, r14
+  mov.l @sp+, r13
+  mov.l @sp+, r12
+  mov.l @sp+, r11
+  mov.l @sp+, r10
+  mov.l @sp+, r9
+  rts
+  mov.l @sp+, r8
 
 // memory pool
 
@@ -1058,7 +1076,6 @@ scanline_loop:
     #else
       cmp/gt r3, r2  // while (vid_pnt > end_pnt)
       bf 1f
-        bra .x_loop_not_transparent_8
         set_pixel_not_transparent_8
       1:
     #endif
@@ -1104,7 +1121,6 @@ scanline_loop:
     #else
       cmp/gt r3, r2  // while (vid_pnt > end_pnt)
       bf 1f
-        bra .x_loop_not_transparent_16
         set_pixel_not_transparent_16
       1:
     #endif
@@ -1150,7 +1166,6 @@ scanline_loop:
     #else
       cmp/gt r3, r2  // while (vid_pnt > end_pnt)
       bf 1f
-        bra .x_loop_not_transparent_32
         set_pixel_not_transparent_32
       1:
     #endif
@@ -1223,7 +1238,6 @@ transparent_face:  // face has transparency
     #else
       cmp/gt r3, r2  // while (vid_pnt > end_pnt)
       bf 1f
-        bra .x_loop_has_transparency_8
         set_pixel_has_transparency_8
       1:
     #endif
@@ -1269,7 +1283,6 @@ transparent_face:  // face has transparency
     #else
       cmp/gt r3, r2  // while (vid_pnt > end_pnt)
       bf 1f
-        bra .x_loop_has_transparency_16
         set_pixel_has_transparency_16
       1:
     #endif
@@ -1315,7 +1328,6 @@ transparent_face:  // face has transparency
     #else
       cmp/gt r3, r2  // while (vid_pnt > end_pnt)
       bf 1f
-        bra .x_loop_has_transparency_32
         set_pixel_has_transparency_32
       1:
     #endif
