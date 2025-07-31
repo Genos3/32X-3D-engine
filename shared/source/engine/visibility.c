@@ -48,9 +48,7 @@ int check_frustum_clipping(g_poly_t *poly) {
   return !outside_frustum; //totally outside
 }
 
-// determine fw tx mapping
-
-int test_tx_dist(g_poly_t *poly) {
+int test_tx_dist(g_poly_t *poly) { //determine fw tx mapping
   fixed x0 = poly->vertices[2].x - poly->vertices[1].x;
   fixed y0 = poly->vertices[2].y - poly->vertices[1].y;
   fixed u0 = poly->vertices[2].u - poly->vertices[1].u;
@@ -76,11 +74,9 @@ int test_tx_dist(g_poly_t *poly) {
   }
 }
 
-// used for fog
-
-int test_poly_dist(g_poly_t *poly, fixed dist) {
+int test_poly_dist(g_poly_t *poly) {
   for (int i = 0; i < poly->num_vertices; i++) {
-    if (poly->vertices[i].z < dist) return 1;
+    if (poly->vertices[i].z < TX_PERSP_DIST) return 1; // fix(4)
   }
   
   return 0;

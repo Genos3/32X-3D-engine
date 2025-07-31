@@ -15,7 +15,6 @@
 #include "engine_globals.h"
 #include "engine_init.h"
 #include "scene.h"
-#include "engine_update.h"
 #include "draw_scene.h"
 #include "engine/math_c.h"
 #include "engine/utils.h"

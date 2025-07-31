@@ -29,8 +29,7 @@ typedef struct {
   u32 color; // u16
   
   struct {
-    u32 _pad : 27;
-    u32 dithered_alpha : 1;
+    u32 _pad : 28;
     u32 is_visible : 1;
     u32 has_transparency : 1;
     u32 has_texture : 1;
@@ -57,14 +56,12 @@ typedef struct {
   const grid_pnt_t *grid_pnt;
   const s16 *pl_data;
   const s16 *vt_data;
-  const size3i_t grid_size_i;
+  const size3i_t size_i;
   const u32 num_tiles;
-  const u32 pl_data_size;
-  const u32 vt_data_size;
   const fixed tile_size;
   const u8 tile_size_bits;
 } grid_t;
-  
+
 typedef struct {
   const u8 face_num_vertices;
   const u8 face_materials;
@@ -77,10 +74,8 @@ typedef struct {
 typedef struct {
   const u16 num_vertices; // u16
   const u16 num_faces; // u16
-  const u32 faces_size; // u32
   const u16 num_txcoords; // u16
   const u16 num_tx_faces; // u16
-  const u32 tx_faces_size; // u32
   const u16 num_objects; // u16
   const u8 num_materials; // u8
   const u8 num_sprites; // u8

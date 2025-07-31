@@ -1,7 +1,7 @@
 #include "common.h"
 
 void clip_line_plane(line_t *line, int plane);
-void calc_clip_line(const vec3_t *vt_0, const vec3_t *vt_1, fixed dist_1, fixed dist_2, vec3_t *i_vt);
+void clip_line(const vec3_t *vt_0, const vec3_t *vt_1, fixed dist_1, fixed dist_2, vec3_t *i_vt);
 
 #if 1 // !ENABLE_ASM
   RAM_CODE void clip_poly_plane(g_poly_t *poly, int plane) {
@@ -134,7 +134,7 @@ void calc_clip_line(const vec3_t *vt_0, const vec3_t *vt_1, fixed dist_1, fixed 
   }
 #endif
 
-int clip_line(line_t *line) {
+int check_clip_line(line_t *line) {
   // set the bitflags
   
   fixed w = fp_mul(line->p0.z, vp.screen_side_x_dt);
@@ -236,10 +236,10 @@ void clip_line_plane(line_t *line, int plane) {
   vec3_t i_vt;
   
   if (dist_1 < 0 && dist_2 >= 0) {
-    calc_clip_line(&line->p1, &line->p0, dist_2, dist_1, &i_vt);
+    clip_line(&line->p1, &line->p0, dist_2, dist_1, &i_vt);
   } else
   if (dist_1 >= 0 && dist_2 < 0) {
-    calc_clip_line(&line->p0, &line->p1, dist_1, dist_2, &i_vt);
+    clip_line(&line->p0, &line->p1, dist_1, dist_2, &i_vt);
   }
   
   // assign it to the line
@@ -255,7 +255,7 @@ void clip_line_plane(line_t *line, int plane) {
   }
 }
 
-void calc_clip_line(const vec3_t *vt_0, const vec3_t *vt_1, fixed dist_1, fixed dist_2, vec3_t *i_vt) {
+void clip_line(const vec3_t *vt_0, const vec3_t *vt_1, fixed dist_1, fixed dist_2, vec3_t *i_vt) {
   fixed_u length = dist_1 - dist_2;
   fixed s;
   

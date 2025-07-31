@@ -1,13 +1,5 @@
 #include "common.h"
 
-#define SEC_CPU_SCANLINES 1
-#define SEC_CPU_PIXELS 0
-
-#if USE_SECOND_CPU
-  scanline_tx_t sec_cpu_tx_scanline;
-  scanline_sp_t sec_cpu_sp_scanline;
-#endif
-
 #if 1 // !ENABLE_ASM
   RAM_CODE void draw_line(fixed x0, fixed y0, fixed x1, fixed y1, u16 color) {
     // if x0 > x1 exchange the vertices in order to always draw from left to right
@@ -135,6 +127,35 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
 }
 
 #if 1 // !ENABLE_ASM
+  #ifdef PC
+    #define set_pixel_sprite() \
+      u32 su_i = su >> FP; \
+      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
+      \
+      if (tx_color) { \
+        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
+        \
+        *vid_pnt = poly->cr_palette_tx_idx[(u8)tx_color]; \
+      } \
+      \
+      vid_pnt++; \
+      \
+      su += dudx;
+  #else
+    #define set_pixel_sprite(shift) \
+      u32 su_i = su >> FP; \
+      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
+      \
+      if (tx_color) { \
+        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
+        \
+        *vid_pnt = tx_color; \
+      } \
+      \
+      vid_pnt++; \
+      \
+      su += dudx;
+  #endif
   
   RAM_CODE void draw_sprite(g_poly_t *poly) {
     // obtain the top/left vertex
@@ -202,132 +223,22 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
     
     u32 y0_i = (fixed_u)poly->vertices[vt_0].y >> FP;
     u32 x0_i = (fixed_u)poly->vertices[vt_0].x >> FP;
-    #if 0 || ENABLE_FOG
-      u32 y_line = y0_i;
-    #endif
     
-    #if !OVERWRITE_IMAGE
-      u16 *vid_y_offset = screen + y0_i * SCREEN_WIDTH + x0_i;
-    #else
-      u16 *vid_y_offset = screen + 0x10000 + y0_i * SCREEN_WIDTH + x0_i;
-    #endif
+    u16 *vid_y_offset = screen + y0_i * SCREEN_WIDTH + x0_i;
     
     // Y loop
     
     while (height > 0) {
-      scanline_sp_t scanline;
-      
-      scanline.su = su_l;
-      scanline.sv_i = sv_l >> FP;
+      fixed_u su = su_l;
+      u32 sv_i = sv_l >> FP;
       
       // set the pointers for the start and the end of the scanline
       
-      scanline.vid_pnt = vid_y_offset;
-      scanline.end_pnt = vid_y_offset + dx;
-      
-      scanline.dudx = dudx;
-      #if ENABLE_FOG
-        scanline.y_line = y_line;
-      #endif
+      u16 *vid_pnt = vid_y_offset;
+      u16 *end_pnt = vid_y_offset + dx;
       
       // scanline loop
       
-      // set the second CPU to render
-      #if USE_SECOND_CPU
-        if (!MARS_SYS_COMM4) {
-          sec_cpu_sp_scanline = scanline;
-          MARS_SYS_COMM4 = MARS_CMD_DRAW_SPRITE_SCANLINE;
-          goto segment_loop_exit;
-        }
-      #endif
-      
-      draw_sprite_scanline(poly, &scanline);
-      
-      #if USE_SECOND_CPU
-        segment_loop_exit:
-      #endif
-      
-      sv_l += dvdy;
-      #if ENABLE_FOG
-        y_line++;
-      #endif
-      vid_y_offset += SCREEN_WIDTH;
-      height--;
-    }
-  }
-  
-  #ifdef PC
-    #define set_pixel_sprite() \
-      u32 su_i = su >> FP; \
-      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
-      \
-      if (tx_color) { \
-        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-        \
-        *vid_pnt = poly->cr_palette_tx_idx[(u8)tx_color]; \
-      } \
-      \
-      vid_pnt++; \
-      \
-      su += dudx;
-  #else
-    #define set_pixel_sprite(shift) \
-      u32 su_i = su >> FP; \
-      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
-      \
-      if (tx_color) { \
-        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-        \
-        *vid_pnt = tx_color; \
-      } \
-      \
-      vid_pnt++; \
-      \
-      su += dudx;
-  #endif
-  
-  // dithered alpha mesh
-  
-  #ifdef PC
-    #define set_pixel_sprite_dt_alpha() \
-      u32 su_i = su >> FP; \
-      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
-      \
-      if (tx_color) { \
-        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-        \
-        *vid_pnt = poly->cr_palette_tx_idx[(u8)tx_color]; \
-      } \
-      \
-      vid_pnt += 2; \
-      \
-      su += dudx;
-  #else
-    #define set_pixel_sprite_dt_alpha(shift) \
-      u32 su_i = su >> FP; \
-      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
-      \
-      if (tx_color) { \
-        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-        \
-        *vid_pnt = tx_color; \
-      } \
-      \
-      vid_pnt += 2; \
-      \
-      su += dudx;
-  #endif
-  
-  ALWAYS_INLINE RAM_CODE void draw_sprite_scanline(g_poly_t *poly, scanline_sp_t *scanline) {
-    u16 *vid_pnt = scanline->vid_pnt;
-    u16 *end_pnt = scanline->end_pnt;
-    u32 sv_i = scanline->sv_i;
-    fixed_u su = scanline->su;
-    fixed dudx = scanline->dudx;
-    
-    #if ENABLE_FOG
-      if (!poly->flags.dithered_alpha) {
-    #endif
       #ifdef PC
         while (vid_pnt < end_pnt) {
           set_pixel_sprite();
@@ -353,49 +264,16 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
             break;
         }
       #endif
-    #if ENABLE_FOG
-      } else {
-        #ifdef PC
-          if ((scanline->y_line & 1) != (((u64)vid_pnt >> 1) & 1)) {
-        #else
-          if ((scanline->y_line & 1) != (((u32)vid_pnt >> 1) & 1)) {
-        #endif
-          vid_pnt++;
-          su += dudx;
-        }
-        
-        dudx <<= 1;
-        
-        #ifdef PC
-          while (vid_pnt < end_pnt) {
-            set_pixel_sprite_dt_alpha();
-          }
-        #else
-          switch (poly->texture_width_bits) {
-            case 3:
-              while (vid_pnt < end_pnt) {
-                set_pixel_sprite_dt_alpha(3); // 8
-              }
-              break;
-            
-            case 4:
-              while (vid_pnt < end_pnt) {
-                set_pixel_sprite_dt_alpha(4); // 16
-              }
-              break;
-            
-            case 5:
-              while (vid_pnt < end_pnt) {
-                set_pixel_sprite_dt_alpha(5); // 32
-              }
-              break;
-          }
-        #endif
-      }
-    #endif
+      
+      sv_l += dvdy;
+      vid_y_offset += SCREEN_WIDTH;
+      height--;
+    }
   }
   
   RAM_CODE void draw_poly(g_poly_t *poly) {
+    u16 color = poly->color;
+    
     // obtain the top and bottom vertices
     
     int sup_vt = 0;
@@ -434,9 +312,6 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
     // set the screen offset for the start of the first scanline
     
     u32 y0_i = (fixed_u)poly->vertices[sup_vt].y >> FP;
-    #if ENABLE_FOG || ENABLE_DITHERED_ALPHA
-      u32 y_line = y0_i;
-    #endif
     
     u16 *vid_y_offset = screen + y0_i * SCREEN_WIDTH;
     
@@ -563,11 +438,9 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
           }
         #endif
         
-        scanline_tx_t scanline;
-        
         // set the pointers for the start and the end of the scanline
         
-        scanline.vid_pnt = vid_y_offset + sx_l_i;
+        u16 *vid_pnt = vid_y_offset + sx_l_i;
         
         // scanline loop
         
@@ -582,21 +455,12 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
             MARS_VDP_FILDAT = color;
           }
         #else
-          scanline.end_pnt = vid_y_offset + sx_r_i;
-          #if ENABLE_FOG || ENABLE_DITHERED_ALPHA
-            scanline.y_line = y_line;
-          #endif
+          u16 *end_pnt = vid_y_offset + sx_r_i;
           
-          // set the second CPU to render
-          #if USE_SECOND_CPU
-            if (!MARS_SYS_COMM4) {
-              sec_cpu_tx_scanline = scanline;
-              MARS_SYS_COMM4 = MARS_CMD_DRAW_POLY_SCANLINE;
-              goto segment_loop_exit;
-            }
-          #endif
-          
-          draw_poly_scanline(poly, &scanline);
+          #pragma GCC unroll 4
+          while (vid_pnt < end_pnt) {
+            *vid_pnt++ = color;
+          }
         #endif
         
         segment_loop_exit:
@@ -605,71 +469,77 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
         
         sx_l += dxdy_l;
         sx_r += dxdy_r;
-        #if ENABLE_FOG || ENABLE_DITHERED_ALPHA
-          y_line++;
-        #endif
         vid_y_offset += SCREEN_WIDTH;
         height--;
       }
     }
   }
   
-  ALWAYS_INLINE RAM_CODE void draw_poly_scanline(g_poly_t *poly, scanline_tx_t *scanline) {
-    u16 *vid_pnt = scanline->vid_pnt;
-    u16 *end_pnt = scanline->end_pnt;
-    
-    #if ENABLE_FOG || ENABLE_DITHERED_ALPHA
-      if (!poly->flags.dithered_alpha) {
-    #endif
-      #if ENABLE_SEMITRANSPARENCY
-        if (!poly->flags.has_transparency) {
-      #endif
-        #pragma GCC unroll 4
-        while (vid_pnt < end_pnt) {
-          *vid_pnt++ = poly->color;
-        }
-      #if ENABLE_SEMITRANSPARENCY
-        } else {
-          #pragma GCC unroll 4
-          while (vid_pnt < end_pnt) {
-            u16 fb_color = *vid_pnt;
-            fb_color += 0x404;
-            *vid_pnt++ = fb_color;
-          }
-        }
-      #endif
-    #if ENABLE_FOG || ENABLE_DITHERED_ALPHA
-      } else {
-        #ifdef PC
-          if ((scanline->y_line & 1) != (((u64)vid_pnt >> 1) & 1)) {
-        #else
-          if ((scanline->y_line & 1) != (((u32)vid_pnt >> 1) & 1)) {
-        #endif
-          vid_pnt++;
-        }
-        
-        #if ENABLE_SEMITRANSPARENCY
-          if (!poly->flags.has_transparency) {
-        #endif
-          #pragma GCC unroll 4
-          while (vid_pnt < end_pnt) {
-            *vid_pnt = poly->color;
-            vid_pnt += 2;
-          }
-        #if ENABLE_SEMITRANSPARENCY
-          } else {
-            #pragma GCC unroll 4
-            while (vid_pnt < end_pnt) {
-              u16 fb_color = *vid_pnt;
-              fb_color += 0x404;
-              *vid_pnt = fb_color;
-              vid_pnt += 2;
-            }
-          }
-        #endif
-      }
-    #endif
-  }
+  #ifdef PC
+    #define set_pixel_tx_affine() \
+      u32 su_sv_i = su_sv >> 8; \
+      su_sv_i &= poly->texture_size_wh_s; \
+      u32 su_i = su_sv_i & 0xFF; \
+      u32 sv_i = su_sv_i >> 16; \
+      \
+      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
+      tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
+      \
+      *vid_pnt++ = poly->cr_palette_tx_idx[(u8)tx_color]; \
+      \
+      su_sv += dudx_dvdx;
+  #else
+    #define set_pixel_tx_affine(shift) \
+      u32 su_sv_i = su_sv >> 8; \
+      su_sv_i &= poly->texture_size_wh_s; \
+      u32 su_i = su_sv_i & 0xFF; \
+      u32 sv_i = su_sv_i >> 16; \
+      \
+      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
+      tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
+      \
+      *vid_pnt++ = tx_color; \
+      \
+      su_sv += dudx_dvdx;
+  #endif
+  
+  #ifdef PC
+    #define set_pixel_tx_affine_tr() \
+      u32 su_sv_i = su_sv >> 8; \
+      su_sv_i &= poly->texture_size_wh_s; \
+      u32 su_i = su_sv_i & 0xFF; \
+      u32 sv_i = su_sv_i >> 16; \
+      \
+      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
+      \
+      if (tx_color) { \
+        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
+        \
+        *vid_pnt = poly->cr_palette_tx_idx[(u8)tx_color]; \
+      } \
+      \
+      vid_pnt++; \
+      \
+      su_sv += dudx_dvdx;
+  #else
+    #define set_pixel_tx_affine_tr(shift) \
+      u32 su_sv_i = su_sv >> 8; \
+      su_sv_i &= poly->texture_size_wh_s; \
+      u32 su_i = su_sv_i & 0xFF; \
+      u32 sv_i = su_sv_i >> 16; \
+      \
+      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
+      \
+      if (tx_color) { \
+        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
+        \
+        *vid_pnt = tx_color; \
+      } \
+      \
+      vid_pnt++; \
+      \
+      su_sv += dudx_dvdx;
+  #endif
   
   RAM_CODE void draw_poly_tx_affine(g_poly_t *poly) {
     // obtain the top and bottom vertices
@@ -711,11 +581,12 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
     // set the screen offset for the start of the first scanline
     
     u32 y0_i = (fixed_u)poly->vertices[sup_vt].y >> FP;
-    #if ENABLE_FOG
-      u32 y_line = y0_i;
-    #endif
     
-    u16 *vid_y_offset = screen + y0_i * SCREEN_WIDTH;
+    #if !OVERWRITE_IMAGE
+      u16 *vid_y_offset = screen + y0_i * SCREEN_WIDTH;
+    #else
+      u16 *vid_y_offset = screen + 0x10000 + y0_i * SCREEN_WIDTH;
+    #endif
     
     // main Y loop
     
@@ -855,8 +726,6 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
         fixed su_r = su_r_sv_r & 0xFFFF;
         fixed sv_r = su_r_sv_r >> 16;
         
-        scanline_tx_t scanline;
-        
         // calculate the scanline deltas
         
         fixed dudx, dvdx;
@@ -876,7 +745,7 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
           dvdx = 0;
         }
         
-        scanline.dudx_dvdx = (dvdx << 16) | (u16)dudx;
+        u32 dudx_dvdx = (dvdx << 16) | (u16)dudx;
         
         // initialize the scanline variables
         
@@ -884,9 +753,9 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
           fixed dtx = sx_l - fp_trunc(sx_l); // sub-texel precision
           fixed_u su = su_l + fp_mul(dudx, dtx);
           fixed_u sv = sv_l + fp_mul(dvdx, dtx);
-          scanline.su_sv = (sv << 16) | su;
+          u32 su_sv = (sv << 16) | su;
         #else
-          scanline.su_sv = su_l_sv_l;
+          u32 su_sv = su_l_sv_l;
         #endif
         
         // X clipping
@@ -904,33 +773,68 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
         
         // set the pointers for the start and the end of the scanline
         
-        scanline.vid_pnt = vid_y_offset + sx_l_i;
-        scanline.end_pnt = vid_y_offset + sx_r_i;
+        u16 *vid_pnt = vid_y_offset + sx_l_i;
+        u16 *end_pnt = vid_y_offset + sx_r_i;
         
-        #if ENABLE_FOG
-          scanline.y_line = y_line;
+        // scanline loop
+        
+        #if !OVERWRITE_IMAGE
+          if (!poly->flags.has_texture) {
         #endif
-        
-        // set the second CPU to render
-        #if USE_SECOND_CPU
-          #if SEC_CPU_SCANLINES
-            if (!MARS_SYS_COMM4) {
-              sec_cpu_tx_scanline = scanline;
-              MARS_SYS_COMM4 = MARS_CMD_DRAW_TX_AFF_SCANLINE;
-              goto segment_loop_exit;
-            }
-          #elif SEC_CPU_PIXELS
-            while (MARS_SYS_COMM4);
-            
-            scanline.dudx_dvdx <<= 1;
-            sec_cpu_tx_scanline = scanline;
-            MARS_SYS_COMM4 = MARS_CMD_DRAW_TX_AFF_SCANLINE;
-            scanline.vid_pnt++;
-            scanline.su_sv += scanline.dudx_dvdx >> 1;
-          #endif
+            #ifdef PC
+              while (vid_pnt < end_pnt) {
+                set_pixel_tx_affine();
+              }
+            #else
+              switch (poly->texture_width_bits) {
+                case 3:
+                  while (vid_pnt < end_pnt) {
+                    set_pixel_tx_affine(3); // 8
+                  }
+                  break;
+                
+                case 4:
+                  while (vid_pnt < end_pnt) {
+                    set_pixel_tx_affine(4); // 16
+                  }
+                  break;
+                
+                case 5:
+                  while (vid_pnt < end_pnt) {
+                    set_pixel_tx_affine(5); // 32
+                  }
+                  break;
+              }
+            #endif
+        #if !OVERWRITE_IMAGE
+          } else {
+            #ifdef PC
+              while (vid_pnt < end_pnt) {
+                set_pixel_tx_affine_tr();
+              }
+            #else
+              switch (poly->texture_width_bits) {
+                case 3:
+                  while (vid_pnt < end_pnt) {
+                    set_pixel_tx_affine_tr(3); // 8
+                  }
+                  break;
+                
+                case 4:
+                  while (vid_pnt < end_pnt) {
+                    set_pixel_tx_affine_tr(4); // 16
+                  }
+                  break;
+                
+                case 5:
+                  while (vid_pnt < end_pnt) {
+                    set_pixel_tx_affine_tr(5); // 32
+                  }
+                  break;
+              }
+            #endif
+          }
         #endif
-        
-        // draw_tx_affine_scanline(poly, &scanline);
         
         segment_loop_exit:
         
@@ -940,309 +844,11 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
         sx_r += dxdy_r;
         su_l_sv_l += dudy_l_dvdy_l;
         su_r_sv_r += dudy_r_dvdy_r;
-        #if ENABLE_FOG
-          y_line++;
-        #endif
         
         vid_y_offset += SCREEN_WIDTH;
         height--;
       }
     }
-  }
-  
-  #ifdef PC
-    #define set_pixel_tx_affine() \
-      u32 su_sv_i = su_sv >> 8; \
-      su_sv_i &= poly->texture_size_wh_s; \
-      u32 su_i = su_sv_i & 0xFF; \
-      u32 sv_i = su_sv_i >> 16; \
-      \
-      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
-      tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-      \
-      *vid_pnt++ = poly->cr_palette_tx_idx[(u8)tx_color]; \
-      \
-      su_sv += dudx_dvdx;
-  #else
-    #define set_pixel_tx_affine(shift) \
-      u32 su_sv_i = su_sv >> 8; \
-      su_sv_i &= poly->texture_size_wh_s; \
-      u32 su_i = su_sv_i & 0xFF; \
-      u32 sv_i = su_sv_i >> 16; \
-      \
-      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
-      tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-      \
-      *vid_pnt++ = tx_color; \
-      \
-      su_sv += dudx_dvdx;
-  #endif
-  
-  #ifdef PC
-    #define set_pixel_tx_affine_tr() \
-      u32 su_sv_i = su_sv >> 8; \
-      su_sv_i &= poly->texture_size_wh_s; \
-      u32 su_i = su_sv_i & 0xFF; \
-      u32 sv_i = su_sv_i >> 16; \
-      \
-      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
-      \
-      if (tx_color) { \
-        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-        \
-        *vid_pnt = poly->cr_palette_tx_idx[(u8)tx_color]; \
-      } \
-      \
-      vid_pnt++; \
-      \
-      su_sv += dudx_dvdx;
-  #else
-    #define set_pixel_tx_affine_tr(shift) \
-      u32 su_sv_i = su_sv >> 8; \
-      su_sv_i &= poly->texture_size_wh_s; \
-      u32 su_i = su_sv_i & 0xFF; \
-      u32 sv_i = su_sv_i >> 16; \
-      \
-      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
-      \
-      if (tx_color) { \
-        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-        \
-        *vid_pnt = tx_color; \
-      } \
-      \
-      vid_pnt++; \
-      \
-      su_sv += dudx_dvdx;
-  #endif
-  // for dithered lighting
-  // tx_color += dither_bit;
-  // dither_bit++;
-  
-  // dithered alpha mesh
-  
-  #ifdef PC
-    #define set_pixel_tx_affine_dt_alpha() \
-      u32 su_sv_i = su_sv >> 8; \
-      su_sv_i &= poly->texture_size_wh_s; \
-      u32 su_i = su_sv_i & 0xFF; \
-      u32 sv_i = su_sv_i >> 16; \
-      \
-      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
-      tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-      \
-      *vid_pnt = poly->cr_palette_tx_idx[(u8)tx_color]; \
-      vid_pnt += 2; \
-      \
-      su_sv += dudx_dvdx;
-  #else
-    #define set_pixel_tx_affine_dt_alpha(shift) \
-      u32 su_sv_i = su_sv >> 8; \
-      su_sv_i &= poly->texture_size_wh_s; \
-      u32 su_i = su_sv_i & 0xFF; \
-      u32 sv_i = su_sv_i >> 16; \
-      \
-      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
-      tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-      \
-      *vid_pnt = tx_color; \
-      vid_pnt += 2; \
-      \
-      su_sv += dudx_dvdx;
-  #endif
-  
-  #ifdef PC
-    #define set_pixel_tx_affine_tr_dt_alpha() \
-      u32 su_sv_i = su_sv >> 8; \
-      su_sv_i &= poly->texture_size_wh_s; \
-      u32 su_i = su_sv_i & 0xFF; \
-      u32 sv_i = su_sv_i >> 16; \
-      \
-      u16 tx_color = poly->texture_image[(sv_i << poly->texture_width_bits) + su_i]; \
-      \
-      if (tx_color) { \
-        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-        \
-        *vid_pnt = poly->cr_palette_tx_idx[(u8)tx_color]; \
-      } \
-      \
-      vid_pnt += 2; \
-      \
-      su_sv += dudx_dvdx;
-  #else
-    #define set_pixel_tx_affine_tr_dt_alpha(shift) \
-      u32 su_sv_i = su_sv >> 8; \
-      su_sv_i &= poly->texture_size_wh_s; \
-      u32 su_i = su_sv_i & 0xFF; \
-      u32 sv_i = su_sv_i >> 16; \
-      \
-      u16 tx_color = poly->texture_image[(sv_i << (shift)) + su_i]; \
-      \
-      if (tx_color) { \
-        tx_color = (tx_color << LIGHT_GRD_BITS) + poly->final_light_factor; \
-        \
-        *vid_pnt = tx_color; \
-      } \
-      \
-      vid_pnt += 2; \
-      \
-      su_sv += dudx_dvdx;
-  #endif
-  
-  ALWAYS_INLINE RAM_CODE void draw_tx_affine_scanline(g_poly_t *poly, scanline_tx_t *scanline) {
-    u16 *vid_pnt = scanline->vid_pnt;
-    u16 *end_pnt = scanline->end_pnt;
-    u32 su_sv = scanline->su_sv;
-    u32 dudx_dvdx = scanline->dudx_dvdx;
-    
-    // scanline loop
-    
-    #if ENABLE_FOG
-      if (!poly->flags.dithered_alpha) {
-    #endif
-      if (!poly->flags.has_transparency) {
-        #ifdef PC
-          while (vid_pnt < end_pnt) {
-            set_pixel_tx_affine();
-          }
-        #else
-          #if USE_SECOND_CPU && SEC_CPU_PIXELS
-            switch (poly->texture_width_bits) {
-              case 3:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_dt_alpha(3); // 8
-                }
-                break;
-              
-              case 4:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_dt_alpha(4); // 16
-                }
-                break;
-              
-              case 5:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_dt_alpha(5); // 32
-                }
-                break;
-            }
-          #else
-            switch (poly->texture_width_bits) {
-              case 3:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine(3); // 8
-                }
-                break;
-              
-              case 4:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine(4); // 16
-                }
-                break;
-              
-              case 5:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine(5); // 32
-                }
-                break;
-            }
-          #endif
-        #endif
-      } else {
-        #ifdef PC
-          while (vid_pnt < end_pnt) {
-            set_pixel_tx_affine_tr();
-          }
-        #else
-          switch (poly->texture_width_bits) {
-            case 3:
-              while (vid_pnt < end_pnt) {
-                set_pixel_tx_affine_tr(3); // 8
-              }
-              break;
-            
-            case 4:
-              while (vid_pnt < end_pnt) {
-                set_pixel_tx_affine_tr(4); // 16
-              }
-              break;
-            
-            case 5:
-              while (vid_pnt < end_pnt) {
-                set_pixel_tx_affine_tr(5); // 32
-              }
-              break;
-          }
-        #endif
-      }
-    #if ENABLE_FOG
-      } else {
-        #ifdef PC
-          if ((scanline->y_line & 1) != (((u64)vid_pnt >> 1) & 1)) {
-        #else
-          if ((scanline->y_line & 1) != (((u32)vid_pnt >> 1) & 1)) {
-        #endif
-          vid_pnt++;
-          su_sv += dudx_dvdx;
-        }
-        
-        dudx_dvdx <<= 1;
-        
-        if (!poly->flags.has_transparency) {
-          #ifdef PC
-            while (vid_pnt < end_pnt) {
-              set_pixel_tx_affine_dt_alpha();
-            }
-          #else
-            switch (poly->texture_width_bits) {
-              case 3:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_dt_alpha(3); // 8
-                }
-                break;
-              
-              case 4:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_dt_alpha(4); // 16
-                }
-                break;
-              
-              case 5:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_dt_alpha(5); // 32
-                }
-                break;
-            }
-          #endif
-        } else {
-          #ifdef PC
-            while (vid_pnt < end_pnt) {
-              set_pixel_tx_affine_tr_dt_alpha();
-            }
-          #else
-            switch (poly->texture_width_bits) {
-              case 3:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_tr_dt_alpha(3); // 8
-                }
-                break;
-              
-              case 4:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_tr_dt_alpha(4); // 16
-                }
-                break;
-              
-              case 5:
-                while (vid_pnt < end_pnt) {
-                  set_pixel_tx_affine_tr_dt_alpha(5); // 32
-                }
-                break;
-            }
-          #endif
-        }
-      }
-    #endif
   }
 #endif
 
@@ -1561,7 +1167,7 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
           
           // segment inner loop
           
-          if (!poly->flags.has_transparency) {
+          if (!poly->flags.has_texture) {
             while (vid_pnt < seg_end_pnt) {
               u32 su_i = p_su >> FP;
               u32 sv_i = p_sv >> FP;
@@ -1866,7 +1472,7 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
         
         // scanline loop
         
-        if (!poly->flags.has_transparency) {
+        if (!poly->flags.has_texture) {
           #ifdef PC
             while (vid_pnt < end_pnt) {
               set_pixel_tx_affine();

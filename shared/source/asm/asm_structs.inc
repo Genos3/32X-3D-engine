@@ -5,7 +5,6 @@
 .equ poly.has_texture.bit, (1 << 1)
 .equ poly.has_transparency.bit, (1 << 2)
 .equ poly.is_visible.bit, (1 << 3)
-.equ poly.dithered_alpha.bit, (1 << 4)
 
 // model
 .equ model.has_normals.bit, 1
@@ -42,7 +41,7 @@
     // int
     poly.color: // u16
       .space 4
-    poly.flags: // is_backface, has_texture, has_transparency, is_visible, dithered_alpha // u8
+    poly.flags: // is_backface, has_texture, has_transparency, is_visible // u8
       .space 4
     poly.num_vertices: // u8
       .space 4

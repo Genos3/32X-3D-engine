@@ -138,31 +138,24 @@ extern void secondary() {
       //   flush_ot(1);
       //   break;
       case MARS_CMD_DRAW_BG:
-        if (scn.draw_sky) {
-          ClearCache();
-          #if PALETTE_MODE
-            draw_sky_pal();
-          #else
-            draw_sky();
-          #endif
-        } else {
-          memset16((u16*)&MARS_FRAMEBUFFER + 0x100, dup8(PAL_BG), SCREEN_WIDTH * SCREEN_HEIGHT);
-        }
+        memset16((u16*)&MARS_FRAMEBUFFER + 0x100, dup8(PAL_BG), SCREEN_WIDTH * SCREEN_HEIGHT);
         break;
-      #if USE_SECOND_CPU
-        case MARS_CMD_DRAW_POLY_SCANLINE:
-          ClearCache();
-          draw_poly_scanline(&g_poly, &sec_cpu_tx_scanline);
-          break;
-        case MARS_CMD_DRAW_TX_AFF_SCANLINE:
-          ClearCache();
-          draw_tx_affine_scanline(&g_poly, &sec_cpu_tx_scanline);
-          break;
-        case MARS_CMD_DRAW_SPRITE_SCANLINE:
-          ClearCache();
-          draw_sprite_scanline(&g_poly, &sec_cpu_sp_scanline);
-          break;
-      #endif
+      /* case MARS_CMD_DRAW_POLY0:
+        ClearCache();
+        draw_poly(1, &g_poly);
+        break;
+      case MARS_CMD_DRAW_POLY1:
+        ClearCache();
+        draw_poly_tx_affine(1, &g_poly);
+        break;
+      case MARS_CMD_DRAW_POLY2:
+        ClearCache();
+        draw_poly_tx(1, &g_poly);
+        break;
+      case MARS_CMD_DRAW_POLY3:
+        ClearCache();
+        draw_sprite(1, &g_poly);
+        break; */
     }
     
     MARS_SYS_COMM4 = 0;

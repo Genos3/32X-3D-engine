@@ -36,7 +36,7 @@ s16 ordering_table[SCN_OT_SIZE];
 pl_list_t ot_pl_list[SCN_VIS_PL_LIST_SIZE];
 u16 dl_pl_list[SCN_VIS_PL_LIST_SIZE], dl_vt_list[SCN_VIS_VT_LIST_SIZE], dl_obj_list[SCN_MAX_NUM_OBJECTS], dl_tr_vt_index[MDL_VT_LIST_MAX_SIZE];
 #if ENABLE_TEXTURE_BUFFER
-  u16 texture_buffer[TEXTURE_BUFFER_SIZE];
+  u8 texture_buffer[TEXTURE_BUFFER_SIZE];
 #endif
 int profile_vars[3];
 // const u8 *texture_image;

@@ -7,14 +7,13 @@
   #define RAM_CODE
   #define fptofl(x) ((float)(x) / (1 << FP))
   #define NO_OPTIMIZE
-  
   #define ENABLE_ASM 0
-  #define USE_SECOND_CPU 0
   #define OVERWRITE_IMAGE 0
   #define DIV_LUT_ENABLE 0
   #define SQRT_SUPPORT 1
 #else
   #define RAM_CODE __attribute__((section(".sdram"), aligned(16)))
+  #define USE_SECOND_CPU 0
   
   #ifdef DBG
     #define NO_OPTIMIZE __attribute__((optimize("O0")))
@@ -22,14 +21,13 @@
     #define NO_OPTIMIZE
   #endif
   
-  #define ENABLE_ASM 0
-  #define USE_SECOND_CPU 1
+  #define ENABLE_ASM 1
   #define OVERWRITE_IMAGE 0
   #define DIV_LUT_ENABLE 0
   #define SQRT_SUPPORT 0
 #endif
 
-#define ALWAYS_INLINE inline __attribute__((always_inline))
+#define ALWAYS_INLINE __attribute__((always_inline))
 
 #ifdef PC
   #define PC_SCREEN_WIDTH 320
