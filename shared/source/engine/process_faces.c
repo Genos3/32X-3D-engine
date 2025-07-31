@@ -239,7 +239,22 @@ extern u8 animation_frames[];
       
       //transform_vx_model(model_matrix, model_pnt);
       transform_vertices(model_matrix, model_pnt->vertices, tr_vertices, model_pnt->num_vertices);
-      draw_voxel_model(model_pnt);
+      
+      // TODO: add frustum culling
+      int draw_affine_model = 1;
+      
+      for (int i = 0; i < 8; i++) {
+        if (tr_vertices[i].z < vp.z_near) {
+          draw_affine_model = 0;
+          break;
+        }
+      }
+      
+      if (draw_affine_model) {
+        draw_voxel_model_affine(model_pnt);
+      } else {
+        draw_voxel_model_ps(model_pnt);
+      }
     } else { // normal model
       const model_t *model_pnt = scene->obj_list[obj_id].mdl_pnt;
       
@@ -259,7 +274,7 @@ extern u8 animation_frames[];
     
     int face_index = model->face_group[face_id].face_index;
     g_poly.face_type = model->face_group[face_id].face_types;
-    g_poly.flags.has_texture = !!(g_poly.face_type & HAS_ALPHA);
+    g_poly.flags.has_transparency = !!(g_poly.face_type & HAS_ALPHA);
     g_poly.num_vertices = model->face_group[face_id].face_num_vertices;
     g_poly.frustum_clip_sides = clipping_pl_list[dl_face_id];
     g_poly.face_id = face_id;
@@ -361,6 +376,16 @@ extern u8 animation_frames[];
         }
       }
     }
+    
+    // make the face semitransparent for the fog
+    
+    #if ENABLE_FOG
+      if (test_poly_dist(&g_poly, vp.z_far - fix(1))) {
+        g_poly.flags.dithered_alpha = 0;
+      } else {
+        g_poly.flags.dithered_alpha = 1;
+      }
+    #endif
     
     int tx_id = model->mtl_textures[model->face_group[face_id].face_materials];
     // int tx_id = model->face_group[face_id].face_materials;

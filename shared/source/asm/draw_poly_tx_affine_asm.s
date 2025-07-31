@@ -9,259 +9,6 @@
 .extern _screen
 .extern _div_lut
 
-// pixel macro
-
-// r0: sv_i (scratch)
-// r2: *vid_pnt
-// r3: *end_pnt
-// r4: su_sv
-// r5: dudx_dvdx
-// r6: su_i, tx_color (scratch)
-
-// r11: texture_size_wh_s
-// r12: texture_image
-// r13: cr_palette_tx_idx
-// r14: final_light_factor
-
-.macro set_pixel_not_transparent_8
-  mov r4, r0
-  shlr8 r0  // u32 su_sv_i = su_sv >> 8
-  and r11, r0  // su_sv_i &= texture_size_wh_s
-  mov r0, r6  // u32 su_i = su_sv_i & 0xFF
-  shlr16 r0  // u32 sv_i = su_sv_i >> 16
-  
-  shll2 r0
-  shll r0
-  add r6, r0
-  shll r0
-  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 3) + su_i];
-  
-  #if ASM_HAS_LIGHTING
-    #if PALETTE_MODE
-      shll2 r6  // LIGHT_GRD_BITS
-      add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
-    #else
-      shll2 r6
-      shll r6  // LIGHT_GRD_BITS + 1
-      add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
-    #endif
-  #endif
-  
-  #if PALETTE_MODE
-    mov.w r6, @-r2  // *--vid_pnt = tx_color;
-  #else
-    mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
-    mov.w r6, @-r2  // *--vid_pnt = tx_color;
-  #endif
-  
-  #if !UNROLL_SCANLINE_LOOP
-    bra .x_loop_not_transparent_8
-  #endif
-  add r5, r4  // su_sv += dudx_dvdx;
-.endm
-
-.macro set_pixel_not_transparent_16
-  mov r4, r0
-  shlr8 r0  // uint su_sv_i = su_sv >> 8
-  and r11, r0  // uint su_sv_i &= texture_size_wh_s
-  mov r0, r6  // uint su_i = su_sv_i & 0xFF
-  shlr16 r0  // uint sv_i = su_sv_i >> 16
-  
-  shll2 r0
-  shll2 r0
-  add r6, r0
-  shll r0
-  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 4) + su_i];
-  
-  #if ASM_HAS_LIGHTING
-    #if PALETTE_MODE
-      shll2 r6  // LIGHT_GRD_BITS
-      add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
-    #else
-      shll2 r6
-      shll r6  // LIGHT_GRD_BITS + 1
-      add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
-    #endif
-  #endif
-  
-  #if PALETTE_MODE
-    mov.w r6, @-r2  // *--vid_pnt = tx_color;
-  #else
-    mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
-    mov.w r6, @-r2  // *--vid_pnt = tx_color;
-  #endif
-  
-  #if !UNROLL_SCANLINE_LOOP
-    bra .x_loop_not_transparent_16
-  #endif
-  add r5, r4  // su_sv += dudx_dvdx;
-.endm
-
-.macro set_pixel_not_transparent_32
-  mov r4, r0
-  shlr8 r0  // uint su_sv_i = su_sv >> 8
-  and r11, r0  // uint su_sv_i &= texture_size_wh_s
-  extu.b r0, r6  // uint su_i = su_sv_i & 0xFF
-  shlr16 r0  // uint sv_i = su_sv_i >> 16
-  
-  shll2 r0
-  shll2 r0
-  shll r0
-  add r6, r0
-  shll r0
-  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 5) + su_i];
-  
-  #if ASM_HAS_LIGHTING
-    #if PALETTE_MODE
-      shll2 r6  // LIGHT_GRD_BITS
-      add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
-    #else
-      shll2 r6
-      shll r6  // LIGHT_GRD_BITS + 1
-      add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
-    #endif
-  #endif
-  
-  #if PALETTE_MODE
-    mov.w r6, @-r2  // *--vid_pnt = tx_color;
-  #else
-    mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
-    mov.w r6, @-r2  // *--vid_pnt = tx_color;
-  #endif
-  
-  #if !UNROLL_SCANLINE_LOOP
-    bra .x_loop_not_transparent_32
-  #endif
-  add r5, r4  // su_sv += dudx_dvdx;
-.endm
-
-.macro set_pixel_has_transparency_8
-  mov r4, r0
-  shlr8 r0  // uint su_sv_i = su_sv >> 8
-  and r11, r0  // uint su_sv_i &= texture_size_wh_s
-  extu.b r0, r6  // uint su_i = su_sv_i & 0xFF
-  shlr16 r0  // uint sv_i = su_sv_i >> 16
-  
-  shll2 r0
-  shll r0
-  add r6, r0
-  shll r0
-  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 3) + su_i];
-  
-  cmp/pl r6  // if (tx_color)
-  bf 1f
-    #if ASM_HAS_LIGHTING
-      #if PALETTE_MODE
-        shll2 r6  // LIGHT_GRD_BITS
-        add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
-      #else
-        shll2 r6
-        shll r6  // LIGHT_GRD_BITS + 1
-        add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
-      #endif
-    #endif
-    
-    #if PALETTE_MODE
-      mov.w r6, @r2  // *vid_pnt = tx_color;
-    #else
-      mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
-      mov.w r6, @r2  // *vid_pnt = tx_color;
-    #endif
-  1:
-  
-  add #-2, r2  // vid_pnt--;
-  
-  #if !UNROLL_SCANLINE_LOOP
-    bra .x_loop_has_transparency_8
-  #endif
-  add r5, r4  // su_sv += dudx_dvdx;
-.endm
-
-.macro set_pixel_has_transparency_16
-  mov r4, r0
-  shlr8 r0  // su_sv_i = su_sv >> 8
-  and r11, r0  // su_sv_i &= texture_size_wh_s
-  extu.b r0, r6  // su_i = su_sv_i & 0xFF
-  shlr16 r0  // sv_i = su_sv_i >> 16
-  
-  shll2 r0
-  shll2 r0
-  add r6, r0
-  shll r0
-  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 4) + su_i];
-  
-  cmp/pl r6  // if (tx_color)
-  bf 1f
-    #if ASM_HAS_LIGHTING
-      #if PALETTE_MODE
-        shll2 r6  // LIGHT_GRD_BITS
-        add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
-      #else
-        shll2 r6
-        shll r6  // LIGHT_GRD_BITS + 1
-        add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
-      #endif
-    #endif
-    
-    #if PALETTE_MODE
-      mov.w r6, @r2  // *vid_pnt = tx_color;
-    #else
-      mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
-      mov.w r6, @r2  // *vid_pnt = tx_color;
-    #endif
-  1:
-  
-  add #-2, r2  // vid_pnt--;
-  
-  #if !UNROLL_SCANLINE_LOOP
-    bra .x_loop_has_transparency_16
-  #endif
-  add r5, r4  // su_sv += dudx_dvdx;
-.endm
-
-.macro set_pixel_has_transparency_32
-  mov r4, r0
-  shlr8 r0  // su_sv_i = su_sv >> 8
-  and r11, r0  // su_sv_i &= texture_size_wh_s
-  extu.b r0, r6  // su_i = su_sv_i & 0xFF
-  shlr16 r0  // sv_i = su_sv_i >> 16
-  
-  shll2 r0
-  shll2 r0
-  shll r0
-  add r6, r0
-  shll r0
-  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 5) + su_i];
-  
-  cmp/pl r6  // if (tx_color)
-  bf 1f
-    #if ASM_HAS_LIGHTING
-      #if PALETTE_MODE
-        shll2 r6  // LIGHT_GRD_BITS
-        add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
-      #else
-        shll2 r6
-        shll r6  // LIGHT_GRD_BITS + 1
-        add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
-      #endif
-    #endif
-    
-    #if PALETTE_MODE
-      mov.w r6, @r2  // *vid_pnt = tx_color;
-    #else
-      mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
-      mov.w r6, @r2  // *vid_pnt = tx_color;
-    #endif
-  1:
-  
-  add #-2, r2  // vid_pnt--;
-  
-  #if !UNROLL_SCANLINE_LOOP
-    bra .x_loop_has_transparency_32
-  #endif
-  add r5, r4  // su_sv += dudx_dvdx;
-.endm
-
 // void draw_poly_tx_affine_asm(poly_t *poly)
 
 _draw_poly_tx_affine_asm:
@@ -1011,6 +758,259 @@ pool.screen:
 
 pool.div_lut:
   .long _div_lut
+
+// pixel macro
+
+// r0: sv_i (scratch)
+// r2: *vid_pnt
+// r3: *end_pnt
+// r4: su_sv
+// r5: dudx_dvdx
+// r6: su_i, tx_color (scratch)
+
+// r11: texture_size_wh_s
+// r12: texture_image
+// r13: cr_palette_tx_idx
+// r14: final_light_factor
+
+.macro set_pixel_not_transparent_8
+  mov r4, r0
+  shlr8 r0  // u32 su_sv_i = su_sv >> 8
+  and r11, r0  // su_sv_i &= texture_size_wh_s
+  mov r0, r6  // u32 su_i = su_sv_i & 0xFF
+  shlr16 r0  // u32 sv_i = su_sv_i >> 16
+  
+  shll2 r0
+  shll r0
+  add r6, r0
+  shll r0
+  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 3) + su_i];
+  
+  #if ASM_HAS_LIGHTING
+    #if PALETTE_MODE
+      shll2 r6  // LIGHT_GRD_BITS // TODO: can be done in the exporter
+      add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
+    #else
+      shll2 r6
+      shll r6  // LIGHT_GRD_BITS + 1
+      add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
+    #endif
+  #endif
+  
+  #if PALETTE_MODE
+    mov.w r6, @-r2  // *--vid_pnt = tx_color;
+  #else
+    mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
+    mov.w r6, @-r2  // *--vid_pnt = tx_color;
+  #endif
+  
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_not_transparent_8
+  #endif
+  add r5, r4  // su_sv += dudx_dvdx;
+.endm
+
+.macro set_pixel_not_transparent_16
+  mov r4, r0
+  shlr8 r0  // uint su_sv_i = su_sv >> 8
+  and r11, r0  // uint su_sv_i &= texture_size_wh_s
+  mov r0, r6  // uint su_i = su_sv_i & 0xFF
+  shlr16 r0  // uint sv_i = su_sv_i >> 16
+  
+  shll2 r0
+  shll2 r0
+  add r6, r0
+  shll r0
+  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 4) + su_i];
+  
+  #if ASM_HAS_LIGHTING
+    #if PALETTE_MODE
+      shll2 r6  // LIGHT_GRD_BITS
+      add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
+    #else
+      shll2 r6
+      shll r6  // LIGHT_GRD_BITS + 1
+      add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
+    #endif
+  #endif
+  
+  #if PALETTE_MODE
+    mov.w r6, @-r2  // *--vid_pnt = tx_color;
+  #else
+    mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
+    mov.w r6, @-r2  // *--vid_pnt = tx_color;
+  #endif
+  
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_not_transparent_16
+  #endif
+  add r5, r4  // su_sv += dudx_dvdx;
+.endm
+
+.macro set_pixel_not_transparent_32
+  mov r4, r0
+  shlr8 r0  // uint su_sv_i = su_sv >> 8
+  and r11, r0  // uint su_sv_i &= texture_size_wh_s
+  extu.b r0, r6  // uint su_i = su_sv_i & 0xFF
+  shlr16 r0  // uint sv_i = su_sv_i >> 16
+  
+  shll2 r0
+  shll2 r0
+  shll r0
+  add r6, r0
+  shll r0
+  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 5) + su_i];
+  
+  #if ASM_HAS_LIGHTING
+    #if PALETTE_MODE
+      shll2 r6  // LIGHT_GRD_BITS
+      add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
+    #else
+      shll2 r6
+      shll r6  // LIGHT_GRD_BITS + 1
+      add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
+    #endif
+  #endif
+  
+  #if PALETTE_MODE
+    mov.w r6, @-r2  // *--vid_pnt = tx_color;
+  #else
+    mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
+    mov.w r6, @-r2  // *--vid_pnt = tx_color;
+  #endif
+  
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_not_transparent_32
+  #endif
+  add r5, r4  // su_sv += dudx_dvdx;
+.endm
+
+.macro set_pixel_has_transparency_8
+  mov r4, r0
+  shlr8 r0  // uint su_sv_i = su_sv >> 8
+  and r11, r0  // uint su_sv_i &= texture_size_wh_s
+  extu.b r0, r6  // uint su_i = su_sv_i & 0xFF
+  shlr16 r0  // uint sv_i = su_sv_i >> 16
+  
+  shll2 r0
+  shll r0
+  add r6, r0
+  shll r0
+  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 3) + su_i];
+  
+  cmp/pl r6  // if (tx_color)
+  bf 1f
+    #if ASM_HAS_LIGHTING
+      #if PALETTE_MODE
+        shll2 r6  // LIGHT_GRD_BITS
+        add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
+      #else
+        shll2 r6
+        shll r6  // LIGHT_GRD_BITS + 1
+        add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
+      #endif
+    #endif
+    
+    #if PALETTE_MODE
+      mov.w r6, @r2  // *vid_pnt = tx_color;
+    #else
+      mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
+      mov.w r6, @r2  // *vid_pnt = tx_color;
+    #endif
+  1:
+  
+  add #-2, r2  // vid_pnt--;
+  
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_has_transparency_8
+  #endif
+  add r5, r4  // su_sv += dudx_dvdx;
+.endm
+
+.macro set_pixel_has_transparency_16
+  mov r4, r0
+  shlr8 r0  // su_sv_i = su_sv >> 8
+  and r11, r0  // su_sv_i &= texture_size_wh_s
+  extu.b r0, r6  // su_i = su_sv_i & 0xFF
+  shlr16 r0  // sv_i = su_sv_i >> 16
+  
+  shll2 r0
+  shll2 r0
+  add r6, r0
+  shll r0
+  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 4) + su_i];
+  
+  cmp/pl r6  // if (tx_color)
+  bf 1f
+    #if ASM_HAS_LIGHTING
+      #if PALETTE_MODE
+        shll2 r6  // LIGHT_GRD_BITS
+        add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
+      #else
+        shll2 r6
+        shll r6  // LIGHT_GRD_BITS + 1
+        add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
+      #endif
+    #endif
+    
+    #if PALETTE_MODE
+      mov.w r6, @r2  // *vid_pnt = tx_color;
+    #else
+      mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
+      mov.w r6, @r2  // *vid_pnt = tx_color;
+    #endif
+  1:
+  
+  add #-2, r2  // vid_pnt--;
+  
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_has_transparency_16
+  #endif
+  add r5, r4  // su_sv += dudx_dvdx;
+.endm
+
+.macro set_pixel_has_transparency_32
+  mov r4, r0
+  shlr8 r0  // su_sv_i = su_sv >> 8
+  and r11, r0  // su_sv_i &= texture_size_wh_s
+  extu.b r0, r6  // su_i = su_sv_i & 0xFF
+  shlr16 r0  // sv_i = su_sv_i >> 16
+  
+  shll2 r0
+  shll2 r0
+  shll r0
+  add r6, r0
+  shll r0
+  mov.w @(r0, r12), r6  // u16 tx_color = texture_image[(sv_i << 5) + su_i];
+  
+  cmp/pl r6  // if (tx_color)
+  bf 1f
+    #if ASM_HAS_LIGHTING
+      #if PALETTE_MODE
+        shll2 r6  // LIGHT_GRD_BITS
+        add r14, r6  // txcolor = (txcolor << LIGHT_GRD_BITS) + final_light_factor; // 16-bit
+      #else
+        shll2 r6
+        shll r6  // LIGHT_GRD_BITS + 1
+        add r14, r6  // txcolor = (txcolor << (LIGHT_GRD_BITS + 1)) + final_light_factor; // 16-bit
+      #endif
+    #endif
+    
+    #if PALETTE_MODE
+      mov.w r6, @r2  // *vid_pnt = tx_color;
+    #else
+      mov.w @(r6, r13), r6  // textures->cr_palette_tx_idx[tx_color];
+      mov.w r6, @r2  // *vid_pnt = tx_color;
+    #endif
+  1:
+  
+  add #-2, r2  // vid_pnt--;
+  
+  #if !UNROLL_SCANLINE_LOOP
+    bra .x_loop_has_transparency_32
+  #endif
+  add r5, r4  // su_sv += dudx_dvdx;
+.endm
 
 scanline_loop:  
   cmp/gt r3, r2  // if (vid_pnt > end_pnt)

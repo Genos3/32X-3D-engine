@@ -9,7 +9,7 @@ void add_face_ot_list(int i);
 void transform_grid_cube(fixed tile_size);
 void draw_grid_cube_lines(vec3_t pos, u16 color);
 
-#define TS fix(0.5)
+#define TS fix8(0.5)
 static fixed mdl_cube_matrix[12];
 static vec3_t mdl_cube_tr_vertices[8]; // vertices pre transformed
 
@@ -35,11 +35,14 @@ static const u8 mdl_cube_lines[] = {
     map_pos.y = obj_pos.y + model->origin.y;
     map_pos.z = obj_pos.z + model->origin.z;
     
+    tile_size_bits_fp = model->grid.tile_size_bits + FP;
+    fixed grid_tile_size = 1 << tile_size_bits_fp;
+    
     // center of the first tile
     vec3_t tile_pos;
-    tile_pos.x = map_pos.x + (model->grid.tile_size >> 1);
-    tile_pos.y = map_pos.y + (model->grid.tile_size >> 1);
-    tile_pos.z = map_pos.z + (model->grid.tile_size >> 1);
+    tile_pos.x = map_pos.x + (grid_tile_size >> 1);
+    tile_pos.y = map_pos.y + (grid_tile_size >> 1);
+    tile_pos.z = map_pos.z + (grid_tile_size >> 1);
     
     #if SCENE_HAS_MAPS
       if (scn.curr_model == scn.cam_curr_map) {
@@ -50,7 +53,7 @@ static const u8 mdl_cube_lines[] = {
     #endif
     
     #if DRAW_GRID
-      transform_grid_cube(model->grid.tile_size);
+      transform_grid_cube(grid_tile_size);
     #endif
     
     if (cfg.occlusion_cl_enabled) {
@@ -72,8 +75,6 @@ static const u8 mdl_cube_lines[] = {
     // obtain the frustum aabb
     get_frustum_aabb(&fr_aabb);
     
-    tile_size_bits_fp = model->grid.tile_size_bits + FP;
-    
     // normalize the frustum aabb and the camera position against the grid size
     
     fr_aabb.min.x = (fr_aabb.min.x - map_pos.x) >> tile_size_bits_fp;
@@ -83,12 +84,12 @@ static const u8 mdl_cube_lines[] = {
     fr_aabb.max.y = (fr_aabb.max.y - map_pos.y) >> tile_size_bits_fp;
     fr_aabb.max.z = (fr_aabb.max.z - map_pos.z) >> tile_size_bits_fp;
     
-    fr_aabb.min.x = clamp_i(fr_aabb.min.x, 0, model->grid.size_i.w - 1);
-    fr_aabb.min.y = clamp_i(fr_aabb.min.y, 0, model->grid.size_i.h - 1);
-    fr_aabb.min.z = clamp_i(fr_aabb.min.z, 0, model->grid.size_i.d - 1);
-    fr_aabb.max.x = clamp_i(fr_aabb.max.x, 0, model->grid.size_i.w - 1);
-    fr_aabb.max.y = clamp_i(fr_aabb.max.y, 0, model->grid.size_i.h - 1);
-    fr_aabb.max.z = clamp_i(fr_aabb.max.z, 0, model->grid.size_i.d - 1);
+    fr_aabb.min.x = clamp_i(fr_aabb.min.x, 0, model->grid.grid_size_i.w - 1);
+    fr_aabb.min.y = clamp_i(fr_aabb.min.y, 0, model->grid.grid_size_i.h - 1);
+    fr_aabb.min.z = clamp_i(fr_aabb.min.z, 0, model->grid.grid_size_i.d - 1);
+    fr_aabb.max.x = clamp_i(fr_aabb.max.x, 0, model->grid.grid_size_i.w - 1);
+    fr_aabb.max.y = clamp_i(fr_aabb.max.y, 0, model->grid.grid_size_i.h - 1);
+    fr_aabb.max.z = clamp_i(fr_aabb.max.z, 0, model->grid.grid_size_i.d - 1);
     
     /* vec3i_t cam_tile_pos;
     cam_tile_pos.x = (cam.pos.x - map_pos.x) >> tile_size_bits_fp;
@@ -131,7 +132,7 @@ static const u8 mdl_cube_lines[] = {
   }
   
   RAM_CODE void check_map_tile(int x, int y, int z, vec3_t tile_pos, const model_t *model) {
-    int tile_pnt = y * model->grid.size_i.d * model->grid.size_i.w + z * model->grid.size_i.w + x;
+    int tile_pnt = y * model->grid.grid_size_i.d * model->grid.grid_size_i.w + z * model->grid.grid_size_i.w + x;
     
     // if the tile is empty return
     if (model->grid.grid_pnt[tile_pnt].pl < 0) return;
@@ -157,6 +158,8 @@ static const u8 mdl_cube_lines[] = {
         #endif
       }
     #endif
+    
+    // requires the depth buffer enabled
     
     #if DRAW_GRID
       u16 color;

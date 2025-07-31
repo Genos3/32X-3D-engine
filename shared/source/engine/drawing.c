@@ -167,7 +167,7 @@ void draw_axis(){
 }
 
 void draw_line_3d(line_t line, u16 color) {
-  if (check_clip_line(&line)) return;
+  if (clip_line(&line)) return;
   
   project_vertex(&line.p0);
   project_vertex(&line.p1);

@@ -4,6 +4,7 @@
 void memset8(void *dst, u8 val, int count) {
   u8 *_dst = dst;
   
+  #pragma GCC unroll 4
   for (int i = 0; i < count; i++) {
     *_dst++ = val;
   }
@@ -12,6 +13,7 @@ void memset8(void *dst, u8 val, int count) {
 void memset16(void *dst, u16 val, int count) {
   u16 *_dst = dst;
   
+  #pragma GCC unroll 4
   for (int i = 0; i < count; i++) {
     *_dst++ = val;
   }
@@ -22,6 +24,7 @@ void memset16(void *dst, u16 val, int count) {
 void memset32(void *dst, u32 val, int count) {
   u32 *_dst = dst;
   
+  #pragma GCC unroll 4
   for (int i = 0; i < count; i++) {
     *_dst++ = val;
   }
@@ -31,6 +34,7 @@ void memcpy16(void *dst, const void *src, int count) {
   u16 *_dst = dst;
   const u16 *_src = src;
   
+  #pragma GCC unroll 4
   for (int i = 0; i < count; i++) {
     *_dst++ = *_src++;
   }
@@ -42,6 +46,7 @@ void memcpy32(void *dst, const void *src, int count) {
   u32 *_dst = dst;
   const u32 *_src = src;
   
+  #pragma GCC unroll 4
   for (int i = 0; i < count; i++) {
     *_dst++ = *_src++;
   }
