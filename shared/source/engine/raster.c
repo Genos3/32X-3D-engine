@@ -930,7 +930,7 @@ RAM_CODE void fill_rect(int x, int y, int width, int height, u16 color) {
           #endif
         #endif
         
-        // draw_tx_affine_scanline(poly, &scanline);
+        draw_tx_affine_scanline(poly, &scanline);
         
         segment_loop_exit:
         
