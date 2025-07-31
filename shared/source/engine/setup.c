@@ -42,8 +42,7 @@ void calc_model_light(const model_t *model) {
     
     if (model->face_group[i].face_types & BACKFACE) {
       dp = abs_c(dp);
-    } else
-    if (dp < 0) {
+    } else if (dp < 0) {
       dp = 0;
     }
     
@@ -68,8 +67,7 @@ void calc_face_light(int face_id, const model_t *model) {
   
   if (model->face_group[face_id].face_types & BACKFACE) {
     dp = abs_c(dp);
-  } else
-  if (dp < 0) {
+  } else if (dp < 0) {
     dp = 0;
   }
   
@@ -87,8 +85,7 @@ void calc_face_light(int face_id, const model_t *model) {
     
     if (model->face_types[face_index] & BACKFACE) {
       dps = abs_c(dps);
-    } else
-    if (dps < 0) {
+    } else if (dps < 0) {
       dps = 0;
     }
     

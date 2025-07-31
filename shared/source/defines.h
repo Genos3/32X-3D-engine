@@ -9,6 +9,7 @@ typedef unsigned long long u64;
 
 #define FP 16
 #define fix(x) (int)((float)(x) * (1 << FP))
+#define fix8(x) (int)((float)(x) * (1 << 8))
 #define PI_FP fix(3.14159265)
 // 512 element sin lut
 #define lu_sin(x) sin_lut[((x) >> 7) & 0x1FF]
